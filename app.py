@@ -1,38 +1,29 @@
 import streamlit as st
-import numpy as np
 import joblib
-from tensorflow.keras.models import load_model
+from keras.models import load_model
 from keras.preprocessing.sequence import pad_sequences
 
-# Load model and tokenizer from sentiment_model.pkl
-model_data = joblib.load("sentiment_model.pkl")
+# Load model and tokenizer
+model_data = joblib.load('sentiment_model.pkl')
 model_path = model_data['model_path']
-model = load_model(model_path)  # works fine with .keras
 tokenizer = model_data['tokenizer']
 model = load_model(model_path)
 
-# Constants
-MAX_SEQUENCE_LENGTH = 100
-labels = {0: "😠 Negative", 1: "😐 Neutral", 2: "😊 Positive"}
-
 # Streamlit UI
-st.title("📊 Sentiment Analysis App")
-st.write("Enter a review and let the RNN model tell you the sentiment!")
+st.title("Sentiment Analysis App")
+user_input = st.text_area("Enter your review:", "")
 
-user_input = st.text_area("📝 Enter your review here:")
-
-if st.button("Analyze"):
-    if user_input.strip() == "":
-        st.warning("Please enter some text.")
-    else:
-        # Preprocess input
+if st.button("Analyze Sentiment"):
+    if user_input.strip():
         sequence = tokenizer.texts_to_sequences([user_input])
-        padded = pad_sequences(sequence, maxlen=MAX_SEQUENCE_LENGTH)
+        padded = pad_sequences(sequence, maxlen=100)
+        prediction = model.predict(padded)[0]
 
-        # Predict
-        prediction = model.predict(padded)
-        sentiment = np.argmax(prediction)
+        label_map = {0: 'Negative', 1: 'Neutral', 2: 'Positive'}
+        predicted_class = prediction.argmax()
+        confidence = prediction[predicted_class] * 100
 
-        # Display result
-        st.subheader("Prediction:")
-        st.success(f"{labels[sentiment]} (Confidence: {prediction[0][sentiment]:.2f})")
+        st.write(f"**Prediction:** {label_map[predicted_class]}")
+        st.write(f"**Confidence:** {confidence:.2f}%")
+    else:
+        st.warning("Please enter some text to analyze.")
