@@ -11,37 +11,38 @@ class RNNModel(nn.Module):
 
     def forward(self, x):
         output, _ = self.rnn(x)
-        last_output = output[:, -1, :]  # Get the last time step's output
+        last_output = output[:, -1, :]
         return self.fc(last_output)
 
-# --- Load the full model safely ---
-model = torch.load("rnn_sentiment_model.pkl", map_location=torch.device('cpu'), weights_only=False)
-model.eval()
+# --- Load the full model ---
+model = torch.load("rnn_sentiment_model.pkl", map_location=torch.device('cpu'))
+model.eval()  # Set the model to evaluation mode
 
 # --- Preprocess input text into tensor format ---
 def preprocess_input(text):
     max_len = 100
     input_size = 128
 
+    # Convert each character to a normalized value
     vectors = []
     for c in text[:max_len]:
-        val = ord(c) / 255.0  # normalize ASCII
-        vec = [val] * input_size
+        val = ord(c) / 255.0  # Normalize ASCII values between 0 and 1
+        vec = [val] * input_size  # Use the same value for all 128 features
         vectors.append(vec)
 
-    # Pad if needed
+    # Pad the sequence to max_len if needed
     while len(vectors) < max_len:
         vectors.append([0.0] * input_size)
 
-    tensor_input = torch.tensor([vectors], dtype=torch.float32)  # shape: [1, max_len, 128]
+    tensor_input = torch.tensor([vectors], dtype=torch.float32)  # Shape: [1, max_len, 128]
     return tensor_input
 
 # --- Predict sentiment ---
 def predict_sentiment(text):
     inputs = preprocess_input(text)
-    with torch.no_grad():
+    with torch.no_grad():  # No need to compute gradients during inference
         output = model(inputs)
-        predicted = torch.argmax(output, dim=1).item()
+        predicted = torch.argmax(output, dim=1).item()  # Get the predicted class
     return predicted
 
 # --- Sentiment labels ---
