@@ -14,8 +14,8 @@ class RNNModel(nn.Module):
         last_output = output[:, -1, :]
         return self.fc(last_output)
 
-# --- Load the model using torch.load ---
-model = torch.load("rnn_sentiment_model.pkl", map_location=torch.device('cpu'))
+# Load full model safely
+model = torch.load("rnn_sentiment_model.pkl", map_location=torch.device('cpu'), weights_only=False)
 model.eval()
 
 # --- Preprocess input text into tensor format ---
