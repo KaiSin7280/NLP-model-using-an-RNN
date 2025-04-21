@@ -2,5 +2,5 @@ flask
 numpy
 joblib
 tensorflow
-torch==2.0.1
-streamlit==1.17.0
+torch
+streamlit
