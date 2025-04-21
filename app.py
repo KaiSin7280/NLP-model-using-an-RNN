@@ -7,6 +7,7 @@ from keras.preprocessing.sequence import pad_sequences
 # Load model and tokenizer from sentiment_model.pkl
 model_data = joblib.load("sentiment_model.pkl")
 model_path = model_data['model_path']
+model = load_model(model_path)  # works fine with .keras
 tokenizer = model_data['tokenizer']
 model = load_model(model_path)
 
