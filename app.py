@@ -11,10 +11,10 @@ class RNNModel(nn.Module):
 
     def forward(self, x):
         output, _ = self.rnn(x)
-        last_output = output[:, -1, :]
+        last_output = output[:, -1, :]  # Get the last time step's output
         return self.fc(last_output)
 
-# Load full model safely
+# --- Load the full model safely ---
 model = torch.load("rnn_sentiment_model.pkl", map_location=torch.device('cpu'), weights_only=False)
 model.eval()
 
