@@ -2,46 +2,64 @@ import streamlit as st
 import joblib
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import numpy as np
 
-# Load the trained RNN model
+# --- Define the RNNModel class (same as during training) ---
+class RNNModel(nn.Module):
+    def __init__(self, input_size=1, hidden_size=128, output_size=3):
+        super(RNNModel, self).__init__()
+        self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
+        self.fc = nn.Linear(hidden_size, output_size)
+
+    def forward(self, x):
+        # Ensure input is 3D: [batch, sequence, feature]
+        if len(x.shape) == 2:
+            x = x.unsqueeze(-1)  # Add feature dimension if needed
+        output, _ = self.rnn(x)
+        last_output = output[:, -1, :]
+        return self.fc(last_output)
+
+# --- Load the trained model ---
 model = joblib.load('rnn_sentiment_model.pkl')
+model.eval()
 
-# Dummy tokenizer (replace with your actual tokenizer or preprocessing logic)
+# --- Preprocess the user input text ---
 def preprocess_input(text):
-    # This is a placeholder: replace with real preprocessing (e.g., tokenization, padding)
-    # For example, if using a vocab dictionary: [vocab.get(word, 0) for word in text.split()]
-    numeric_input = [ord(char) for char in text[:100]]  # simple char-to-int (for demo)
-    return torch.tensor(numeric_input, dtype=torch.float32)
+    # Convert characters to ASCII values (demo logic – replace with real tokenizer if needed)
+    max_len = 100
+    char_tensor = [ord(c) for c in text[:max_len]]
+    padded = char_tensor + [0] * (max_len - len(char_tensor))  # pad to fixed length
+    tensor_input = torch.tensor(padded, dtype=torch.float32).unsqueeze(0)  # [1, seq_len]
+    return tensor_input
 
-# Predict sentiment from input text
+# --- Predict sentiment ---
 def predict_sentiment(text):
-    model.eval()
     inputs = preprocess_input(text)
-
-    # Ensure tensor shape: (1, sequence_length)
-    inputs = inputs.unsqueeze(0)
-
     with torch.no_grad():
         output = model(inputs)
-        predicted_class = torch.argmax(output, dim=1).item()
-    
-    return predicted_class
+        predicted = torch.argmax(output, dim=1).item()
+    return predicted
 
-# Streamlit interface
+# --- Sentiment mapping ---
+sentiment_labels = {
+    0: "Negative",
+    1: "Positive",
+    2: "Neutral"
+}
+
+# --- Streamlit Interface ---
+st.set_page_config(page_title="Sentiment Analyzer", layout="centered")
 st.title("🧠 Sentiment Analysis App")
-st.write("Enter a review below and let the RNN model analyze the sentiment!")
+st.write("Enter a review below and let the RNN model predict its sentiment.")
 
-# User text input
-review = st.text_area("Your Review")
+# --- Text input ---
+user_review = st.text_area("📝 Your Review")
 
-# Prediction
-if st.button("Analyze"):
-    if review.strip() == "":
-        st.warning("Please enter some text for analysis.")
+# --- Predict button ---
+if st.button("🔍 Analyze Sentiment"):
+    if user_review.strip() == "":
+        st.warning("Please enter a review to analyze.")
     else:
-        prediction = predict_sentiment(review)
-        sentiment_map = {0: "Negative", 1: "Positive", 2: "Neutral"}
-        sentiment = sentiment_map.get(prediction, "Unknown")
-        st.success(f"Predicted Sentiment: **{sentiment}**")
+        prediction = predict_sentiment(user_review)
+        sentiment = sentiment_labels.get(prediction, "Unknown")
+        st.success(f"### ✅ Sentiment: {sentiment}")
