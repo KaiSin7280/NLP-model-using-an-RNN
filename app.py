@@ -1,9 +1,8 @@
 import streamlit as st
-import joblib
 import torch
 import torch.nn as nn
 
-# --- Define the RNNModel class ---
+# --- Define the model class (must match the one used in training) ---
 class RNNModel(nn.Module):
     def __init__(self, input_size=128, hidden_size=128, output_size=3):
         super(RNNModel, self).__init__()
@@ -15,22 +14,22 @@ class RNNModel(nn.Module):
         last_output = output[:, -1, :]
         return self.fc(last_output)
 
-# --- Load the trained model ---
-model = joblib.load('rnn_sentiment_model.pkl')
+# --- Load the model using torch.load ---
+model = torch.load("rnn_sentiment_model.pkl", map_location=torch.device('cpu'))
 model.eval()
 
-# --- Preprocess the user input text ---
+# --- Preprocess input text into tensor format ---
 def preprocess_input(text):
-    max_len = 100  # sequence length
-    input_size = 128  # feature size per character
+    max_len = 100
+    input_size = 128
 
     vectors = []
     for c in text[:max_len]:
-        val = ord(c) / 255.0  # normalize ASCII value
-        vec = [val] * input_size  # expand to vector of 128 dims
+        val = ord(c) / 255.0  # normalize ASCII
+        vec = [val] * input_size
         vectors.append(vec)
 
-    # Pad to max_len
+    # Pad if needed
     while len(vectors) < max_len:
         vectors.append([0.0] * input_size)
 
@@ -45,7 +44,7 @@ def predict_sentiment(text):
         predicted = torch.argmax(output, dim=1).item()
     return predicted
 
-# --- Sentiment mapping ---
+# --- Sentiment labels ---
 sentiment_labels = {
     0: "Negative",
     1: "Positive",
