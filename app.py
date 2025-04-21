@@ -2,19 +2,15 @@ import streamlit as st
 import joblib
 import torch
 import torch.nn as nn
-import numpy as np
 
-# --- Define the RNNModel class (same as during training) ---
+# --- Define the RNNModel class ---
 class RNNModel(nn.Module):
-    def __init__(self, input_size=1, hidden_size=128, output_size=3):
+    def __init__(self, input_size=128, hidden_size=128, output_size=3):
         super(RNNModel, self).__init__()
         self.rnn = nn.RNN(input_size, hidden_size, batch_first=True)
         self.fc = nn.Linear(hidden_size, output_size)
 
     def forward(self, x):
-        # Ensure input is 3D: [batch, sequence, feature]
-        if len(x.shape) == 2:
-            x = x.unsqueeze(-1)  # Add feature dimension if needed
         output, _ = self.rnn(x)
         last_output = output[:, -1, :]
         return self.fc(last_output)
@@ -25,11 +21,20 @@ model.eval()
 
 # --- Preprocess the user input text ---
 def preprocess_input(text):
-    # Convert characters to ASCII values (demo logic – replace with real tokenizer if needed)
-    max_len = 100
-    char_tensor = [ord(c) for c in text[:max_len]]
-    padded = char_tensor + [0] * (max_len - len(char_tensor))  # pad to fixed length
-    tensor_input = torch.tensor(padded, dtype=torch.float32).unsqueeze(0)  # [1, seq_len]
+    max_len = 100  # sequence length
+    input_size = 128  # feature size per character
+
+    vectors = []
+    for c in text[:max_len]:
+        val = ord(c) / 255.0  # normalize ASCII value
+        vec = [val] * input_size  # expand to vector of 128 dims
+        vectors.append(vec)
+
+    # Pad to max_len
+    while len(vectors) < max_len:
+        vectors.append([0.0] * input_size)
+
+    tensor_input = torch.tensor([vectors], dtype=torch.float32)  # shape: [1, max_len, 128]
     return tensor_input
 
 # --- Predict sentiment ---
@@ -47,15 +52,13 @@ sentiment_labels = {
     2: "Neutral"
 }
 
-# --- Streamlit Interface ---
+# --- Streamlit UI ---
 st.set_page_config(page_title="Sentiment Analyzer", layout="centered")
 st.title("🧠 Sentiment Analysis App")
 st.write("Enter a review below and let the RNN model predict its sentiment.")
 
-# --- Text input ---
 user_review = st.text_area("📝 Your Review")
 
-# --- Predict button ---
 if st.button("🔍 Analyze Sentiment"):
     if user_review.strip() == "":
         st.warning("Please enter a review to analyze.")
